@@ -1,6 +1,7 @@
 package main
 
 import (
+    "time"
     "bufio"
     "flag"
     "fmt"
@@ -59,10 +60,52 @@ func main() {
         wg.Wait()
 }
 
+func handlePing(conn net.Conn, isDead chan bool) {
+    c := make(chan bool)
+    go func () {
+        for {
+            select {
+                case ping := <-c:
+                    if ping {
+                        continue
+                    }
+                case <-time.After(2 * time.Second):
+                    fmt.Println("Closing connection:", conn.RemoteAddr().String())
+                    isDead <- true
+                    conn.Close()
+                    return
+            }
+        }
+    }()
+    for {
+        time.Sleep( 1 * time.Second )
+        message, _ := bufio.NewReader(conn).ReadString('\n')
+        if message == "PINGPINGPING\n" {
+            c <- true     
+        } else {
+            return
+        }
+    } 
+}
+
 func handleRequest(work chan string, wg *sync.WaitGroup, conn net.Conn) {
     defer wg.Done()
+    isDead := make(chan bool)
+    go handlePing(conn, isDead)
     for text := range work {
-        // write the job to the connection
+        select {
+        case itsDead, ok := <-isDead:
+            if ok {
+                if itsDead {
+                    return
+                }
+            } else {
+                fmt.Println("Channel closed!")
+                return
+            }
+        default:
+            break
+        }
         conn.Write([]byte(text + string('\n')))
         // print a message saying what the message was and where it went
         fmt.Println("Sending to", conn.RemoteAddr().String(), ":", text)

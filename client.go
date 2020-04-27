@@ -39,7 +39,7 @@ func main() {
 
     // set up workers
     wg := &sync.WaitGroup{}
-    for i := 0; i <= args.Threads; i++ {
+    for i := 1; i <= args.Threads; i++ {
         wg.Add(1)
         go worker(wg, c, i)
     }
@@ -47,13 +47,22 @@ func main() {
     wg.Wait()
 }
 
+func ping(c net.Conn) {
+    for {
+        c.Write([]byte("PINGPINGPING" + string('\n')))
+        time.Sleep(900 * time.Millisecond)
+    }
+}
+
 func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int) {
     defer wg.Done()
+    go ping(c)
     defer c.Close()
     for {
         //receive messages
         message, _ := bufio.NewReader(c).ReadString('\n')
         if message == "" {
+            fmt.Println("No tasks, sleeping.")
             time.Sleep(1000 * time.Millisecond)
             continue
         }
