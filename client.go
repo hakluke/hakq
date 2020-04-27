@@ -37,11 +37,14 @@ func main() {
         c, err = net.DialTCP("tcp", &client, &server)
     }
 
+    // set up reader
+    r := bufio.NewReader(c)
+
     // set up workers
     wg := &sync.WaitGroup{}
     for i := 1; i <= args.Threads; i++ {
         wg.Add(1)
-        go worker(wg, c, i)
+        go worker(wg, c, i, r)
     }
     
     wg.Wait()
@@ -50,17 +53,20 @@ func main() {
 func ping(c net.Conn) {
     for {
         c.Write([]byte("PINGPINGPING" + string('\n')))
-        time.Sleep(900 * time.Millisecond)
+        time.Sleep(1 * time.Second)
     }
 }
 
-func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int) {
+func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int, r *bufio.Reader) {
     defer wg.Done()
     go ping(c)
     defer c.Close()
     for {
         //receive messages
-        message, _ := bufio.NewReader(c).ReadString('\n')
+        message, err:= r.ReadString('\n')
+        if err != nil {
+            fmt.Println(err)
+        }
         if message == "" {
             fmt.Println("No tasks, sleeping.")
             time.Sleep(1000 * time.Millisecond)
