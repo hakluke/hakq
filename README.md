@@ -47,8 +47,8 @@ openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out c
 ```
 Note that as this cert is self-signed, you will need to use the `--insecure` flag on the client. As an alternative, you can actually create a signed certificate and use this securely.
 
-## BIG FAT SECURITY WARNING
-Running these scripts on your machine in an insecure way (i.e. using the --insecure flag, or using a bad password) is the equivalent to providing someone RCE on your machine. Be careful!
+## SECURITY WARNING
+Running these scripts on your machine in an insecure way (i.e. using the --insecure flag, or using a bad password) is the equivalent to providing someone RCE on your machine. Be careful! Use a strong password, avoid the `--insecure` flag, and segment your network.
 
 To get things running, you will need a server and a client. They can even be the same computer.
 
