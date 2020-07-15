@@ -2,11 +2,33 @@
 A basic golang server/client for distributing shell commands to run over multiple systems.
 
 # Note
-This is not ready for production use. It's an absolute bare-bones implementation of what I'm trying to achieve, and it's probably full of bugs. I'm hoping that opening this up to the community will mean that the project can be worked on by many, making it more secure, stable and feature-rich over time.
+This is **not ready for production use**. It's an absolute bare-bones implementation of what I'm trying to achieve, and it's probably full of bugs. I'm hoping that opening this up to the community will mean that the project can be worked on by many, making it more secure, stable and feature-rich over time.
+
+# What is hakq?
+The ultimate goal of this project is to provide a very simple way to distribute many shell commands quickly and easily over many different systems. This has many different uses, but I started designing it with large scale infrastructure scanning in mind. For example, let's say you wrote a python script that scans for a particular vulnerability, and the usage looks like this:
+```
+python3 vulnscan.py <hostname>
+```
+
+And you also have a list of hosts in `hosts.txt`. You want to scan all of the hosts in `hosts.txt` with the python script. There are a few ways to do this, firstly you could use a bash loop:
+```
+cat hosts.txt | while read host; do python3 vulnscan.py $host; done
+```
+
+The problem is, this is super slow and single threaded. Another option is to use a threading wrapper like interlace or GNU parallel:
+```
+cat hosts.txt | parallel -j 50 "python3 vulnscan.py"
+OR 
+interlace -tL ./hosts.txt -threads 50 -c "python3 vulnscan.py _target_"
+```
+
+Now you're running at 50 threads, but if you're scanning millions of hosts it will still be very slow, because you are still throttled by the internet connection on the machine that it's running on. 
+
+To resolve this, you can use hakq to distribute the commands over multiple machines.
 
 # Installation
 
-At present, this is just two golang files, you need to build them:
+At present, this repo just contains two golang files, you need to build them:
 
 ```
 git clone https://github.com/hakluke/hakq
