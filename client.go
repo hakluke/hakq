@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"math/rand"
 	"net"
 	"os/exec"
 	"strings"
@@ -20,6 +21,7 @@ func main() {
 		Server   string `arg:"required" help:"server to connect to" placeholder:"IP:PORT"`
 		Password string `arg:"required" help:"password for server" placeholder:"PASSWORD"`
 		Insecure bool   `help:"ignore insecure TLS - not recommended!"`
+		Timeout  int32  `arg:"required" help:"value after which commands will be timeout"`
 	}
 	arg.MustParse(&args)
 	tlsconfig := tls.Config{}
@@ -50,7 +52,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 	for i := 1; i <= args.Threads; i++ {
 		wg.Add(1)
-		go worker(wg, c, i, r)
+		go worker(wg, c, i, r, args.Timeout)
 	}
 
 	wg.Wait()
@@ -67,7 +69,7 @@ func sendLine(c net.Conn, line string) {
 	c.Write([]byte(line + string('\n')))
 }
 
-func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int, r *bufio.Reader) {
+func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int, r *bufio.Reader, timeout int32) {
 	defer wg.Done()
 	defer c.Close()
 	for {
@@ -82,7 +84,7 @@ func worker(wg *sync.WaitGroup, c net.Conn, workerNumber int, r *bufio.Reader) {
 		fmt.Println("Worker", workerNumber, "executing:", message)
 		//execute the command
 
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rand.Int31n(timeout))*time.Second)
 		defer cancel()
 
 		cmd := exec.CommandContext(ctx, "/bin/sh", "-c", message)
